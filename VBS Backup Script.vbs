@@ -53,6 +53,81 @@ function error(fmessage)
     varError = MsgBox("Error: " & fmessage,0+16,"Error")
 end function
 
+function calculate(fequation)
+    varChar = 0
+    varFunctionSkip = 0
+    varCharSection = 0
+    varWhile = 0
+    varNumberExists = 0
+
+    while varWhile = 0
+        varChar = varChar + 1
+
+        if varCharSection = 0 then
+            if mid(fequation,varChar,1) = "/" then
+                varCharSection = 1
+            else
+                varFunctionSkip = 1
+                varWhile = 1
+            end if
+        elseif varCharSection = 1 then
+            if isNumeric(mid(fequation,varChar,1)) = false then
+                if mid(fequation,varChar,1) = "_" then
+                    varCharSection = 2
+                end if
+            else
+                varFunctionSkip = 1
+                varWhile = 1
+            end if
+        elseif varCharSection = 2 then
+            if isNumeric(mid(fequation,varChar,1)) = true then
+                varNumberExists = 1
+            elseif mid(fequation,varChar,1) = "_" and varNumberExists = 1 then
+                varCharSection = varCharSection + 1
+                varNumberExists = 0
+            else
+                varFunctionSkip = 1
+                varWhile = 1
+            end if
+        elseif varCharSection = 3 then
+            if varChar > len(fequation) and varNumberExists = 1 then
+                varWhile = 1
+                varNumberExists = 0
+            elseif isNumeric(mid(fequation,varChar,1)) = true then
+                varNumberExists = 1
+            else
+                varFunctionSkip = 1
+                varWhile = 1
+            end if
+        end if
+    wend
+
+    if varFunctionSkip = 0 then
+        varSpace1 = InStr(fequation,"_")
+        varSpace2 = InStr(varSpace1+1,fequation,"_")
+        strOperation = left(fequation,varSpace1-1)
+        varValue1 = int(mid(fequation,varSpace1+1,(varSpace2-varSpace1)-1))
+        varValue2 = int(mid(fequation,varSpace2+1,len(fequation)-varSpace2))
+
+        if strOperation = "/add" then
+            calculate = varValue1+varValue2
+        elseif strOperation = "/subtract" then
+            calculate = varValue1-varValue2
+        elseif strOperation = "/multiply" then
+            calculate = varValue1*varValue2
+        elseif strOperation = "/divide" then
+            calculate = varValue1/varValue2
+        elseif strOperation = "/random" then
+            varMax=varValue2
+            varMin=varValue1
+            randomize
+            calculate = (int((varMax-varMin+1)*rnd+varMin))
+        end if
+    else
+        error("Calculation failed")
+    end if
+end function
+
 varGateB = 0
 
 while varGateB = 0
@@ -108,12 +183,27 @@ do
                                     strType = "folder"
                                     varGate = 1
                                 else
-                                    if strSourcePath = "help" then
-                                        varAnswer = MsgBox(strHelpText,0+64,strTitle)
-                                    elseif strSourcePath = "" then
-                                        wscript.quit
+                                    if left(strSourcePath,1) = "/" then
+                                        if InStr(strSourcePath,"_") = 0 then
+                                        else
+                                            varBaseCommandLength = InStr(strSourcePath,"_")-1
+                                        end if
+
+                                        if strSourcePath = "/help" then
+                                            varAnswer = MsgBox(strHelpText,0+64,strTitle)
+                                        elseif strSourcePath = "/subscribe" then
+                                            objShell.run("https://www.youtube.com/channel/UCXDfWc9wKYat9KmgRRMqaDg")
+                                        elseif left(strSourcePath,varBaseCommandLength) = "/add" or left(strSourcePath,varBaseCommandLength) = "/subtract" or left(strSourcePath,varBaseCommandLength) = "/divide" or left(strSourcePath,varBaseCommandLength) = "/multiply" or left(strSourcePath,varBaseCommandLength) = "/random" then
+                                            varAnswer = MsgBox(calculate(strSourcePath),0+64,strTitle)
+                                        else
+                                            varAnswer = error("Command not found")
+                                        end if
                                     else
-                                        error("File not found")
+                                        if strSourcePath = "" then
+                                            wscript.quit
+                                        else
+                                            error("File not found")
+                                        end if
                                     end if
                                 end if
                             end if
